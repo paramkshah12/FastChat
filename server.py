@@ -61,9 +61,26 @@ def multi_threaded_client(connection):
                     connection.send(str.encode("Login failed!"))
                     continue 
 
-    to_user = connection.recv(2048).decode('utf-8')
+    while True:
+        to_user = connection.recv(2048).decode('utf-8')
+        match = 0
+        with open("credentials.txt", 'r') as f:
+            for line in f.read().split("\n"):
+                stored_id, stored_pwd = line.split(" ")
+                if to_user == stored_id:
+                    match = 1
+                    f.close()
+                    break
+        if match == 1:
+            connection.send(str.encode("********************"))
+            break
+        else:
+            connection.send(str.encode("This user does not exist!"))
+            continue
+
     if to_user in online.keys():
-        online[to_user].sendall(connection.recv(2048))
+        while True:
+            online[to_user].sendall(connection.recv(2048))
     else:
         pass
 

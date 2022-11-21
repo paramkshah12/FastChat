@@ -1,5 +1,15 @@
 import socket
 import hashlib
+import threading
+
+def recv_msg(user):
+    while True:
+        data = ClientMultiSocket.recv(2048).decode('utf-8')
+        print("-> " + user + ": " + data)
+def send_msg():
+    while True:
+        data = input()
+        ClientMultiSocket.sendall(str.encode(data))
 
 ClientMultiSocket = socket.socket()
 host = '127.0.0.1'
@@ -47,8 +57,18 @@ elif ch == '1':
             break
            
 while True:
-    Input = input('Who do you want to talk to?: ')
-    ClientMultiSocket.send(str.encode(Input))
-    res = ClientMultiSocket.recv(1024)
-    print(res.decode('utf-8'))
+    while True:
+        Input = input('Who do you want to talk to?: ')
+        ClientMultiSocket.send(str.encode(Input))
+        msg = ClientMultiSocket.recv(2048).decode('utf-8')
+        if msg == "********************":
+            print(msg)
+            break
+        else:
+            print(msg)
+            continue
+    t = threading.Thread(target=recv_msg, args=[Input])
+    t.start()
+    send_msg()
+        
 ClientMultiSocket.close()
