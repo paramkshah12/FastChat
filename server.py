@@ -1,12 +1,30 @@
 import socket
 import os
 from _thread import *
+import psycopg2
+
 
 ServerSideSocket = socket.socket()
 host = '127.0.0.1'
 port = 2004
 online = {}
 from_to = {}
+time = 0
+
+conn = psycopg2.connect(database = "messages", user = "param")
+print("Opened database successfully")
+
+cur = conn.cursor()
+
+cur.execute("DROP TABLE IF EXISTS MSGS")
+cur.execute('''CREATE TABLE MSGS
+      (RECIPIENT_ID TEXT     NOT NULL,
+      MSG           TEXT    NOT NULL,
+      SENDER_ID            TEXT     NOT NULL,
+      DURATION         REAL);''')
+print("Table created successfully")
+
+
 
 try:
     ServerSideSocket.bind((host, port))
@@ -71,7 +89,19 @@ def multi_threaded_client(connection):
     print(from_to)
     while True:
         while True:
-            # Fetch appropriate unread messages from data-base and send to 'connection' or send 'No new messages!'
+            cur.execute('''SELECT * FROM MSGS WHERE RECIPIENT_ID=%s ORDER BY SENDER_ID ASC''',
+            (ID, ))
+            rows = cur.fetchall()
+            cur.execute('''DELETE FROM MSGS WHERE RECIPIENT_ID=%s''',
+            (ID, ))
+            if len(rows) == 0:
+                connection.send(str.encode("No new messages!"))
+            else:
+                new_messages = "\nYou have " + str(len(rows)) + " new messages!\n"
+                for row in rows:
+                    new_messages += "\n-> " + row[2] + ": " + row[1]
+                connection.send(str.encode(new_messages))
+                
             to_user = connection.recv(2048).decode('utf-8')
             if to_user == "no one":
                 online.pop(ID)
@@ -92,6 +122,18 @@ def multi_threaded_client(connection):
             if match == 1:
                 connection.send(str.encode("********************"))
                 from_to[ID] = to_user
+                cur.execute('''SELECT * FROM MSGS WHERE RECIPIENT_ID=%s ORDER BY SENDER_ID ASC''',
+                (ID, ))
+                rows = cur.fetchall()
+                cur.execute('''DELETE FROM MSGS WHERE RECIPIENT_ID=%s''',
+                (ID, ))
+                if len(rows) == 0:
+                    connection.send(str.encode("********************"))
+                else:
+                    new_messages = "********************\n"
+                    for row in rows:
+                        new_messages += "\n-> " + row[2] + ": " + row[1]
+                    connection.send(str.encode(new_messages))
                 print("Who's sending to whom: ", end="")
                 print(from_to)
                 break
@@ -112,12 +154,18 @@ def multi_threaded_client(connection):
                     if from_to[to_user] == ID:
                         online[to_user].send(str.encode(message))
                     else:
-                        pass
-                        # Add to data-base
-                else:
-                    pass
-                    # Add to data-base
+                        cur.execute('''INSERT INTO MSGS (RECIPIENT_ID,MSG,SENDER_ID,DURATION) \
+                        VALUES (%s, %s, %s, %s);
+                        ''',
+                        (to_user, message, ID, time))
+                        conn.commit()
 
+                else:
+                    cur.execute('''INSERT INTO MSGS (RECIPIENT_ID,MSG,SENDER_ID,DURATION) \
+                    VALUES (%s, %s, %s, %s);
+                    ''',
+                    (to_user, message, ID, time))
+                    conn.commit()
 
 while True:
     Client, address = ServerSideSocket.accept()

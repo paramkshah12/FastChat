@@ -74,7 +74,7 @@ elif ch == '1':
 while True:
     end = 0
     while True:
-        # recv data from server and print 
+        print(ClientMultiSocket.recv(2048).decode('utf-8')) 
         Input = input('Who do you want to talk to?: ')
         ClientMultiSocket.send(str.encode(Input))
         if Input == "no one":
@@ -83,6 +83,7 @@ while True:
         msg = ClientMultiSocket.recv(2048).decode('utf-8')
         print(msg)
         if msg == "********************":
+            print(ClientMultiSocket.recv(2048).decode('utf-8'))
             break
         else:
             continue
