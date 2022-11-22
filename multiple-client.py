@@ -5,11 +5,17 @@ import threading
 def recv_msg(user):
     while True:
         data = ClientMultiSocket.recv(2048).decode('utf-8')
-        print("-> " + user + ": " + data)
+        if data == '--':
+            return
+        else:        
+            print("-> " + user + ": " + data)
+
 def send_msg():
     while True:
         data = input()
         ClientMultiSocket.sendall(str.encode(data))
+        if data == "--":
+            return
 
 ClientMultiSocket = socket.socket()
 host = '127.0.0.1'
@@ -23,7 +29,16 @@ except socket.error as e:
 print("********** Login System **********")
 print("1: Signup")
 print("2: Login")
-ch = str(input("Enter your choice: "))
+
+ch = 0
+
+while True:
+    ch = str(input("Enter your choice: "))
+    if ch == '1' or ch == '2':
+        break
+    else:
+        print("Choose between 1 or 2 only!")
+
 ClientMultiSocket.send(str.encode(ch))
 
 if ch == '2':
@@ -55,20 +70,27 @@ elif ch == '1':
             continue
         else:
             break
-           
+
 while True:
+    end = 0
     while True:
+        # recv data from server and print 
         Input = input('Who do you want to talk to?: ')
         ClientMultiSocket.send(str.encode(Input))
+        if Input == "no one":
+            end = 1
+            break
         msg = ClientMultiSocket.recv(2048).decode('utf-8')
+        print(msg)
         if msg == "********************":
-            print(msg)
             break
         else:
-            print(msg)
             continue
+    if end == 1:
+        break
     t = threading.Thread(target=recv_msg, args=[Input])
     t.start()
     send_msg()
+    t.join()
         
 ClientMultiSocket.close()
