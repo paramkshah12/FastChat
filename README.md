@@ -18,7 +18,7 @@ This is a simple chatting platform built using the socket library in python.
 - We've planned out the end-to-end encryption for messages but it is yet to be programmed.
 - Still left to build the notion of groups and the process to send images.
 - The code is not well modularised and documented.
-## Contribuors:
+## Contributors:
 Cheshta Damor - 21005040\
 Shah Param Kauhsik - 210050144\
 We've worked on almost all the parts of the code together. 
