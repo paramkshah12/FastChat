@@ -1,4 +1,4 @@
-# FastChat | SSL Project
+# FastChat | SSL Project | 'CAP' Group
 This is a simple chatting platform built using the socket library in python.
 ## What we've done:
 - So far, we're using a single server to handle all of the client-message requests. Handling multiple clients was achieved using the _thread library.
