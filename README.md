@@ -20,6 +20,6 @@ This is a simple chatting platform built using the socket library in python.
 - Still left to build the notion of groups and the process to send images.
 - The code is not well modularised and documented.
 ## Contributors:
-Cheshta Damor - 21005040\
+Cheshta Damor - 210050040\
 Shah Param Kauhsik - 210050144\
 We've worked on almost all the parts of the code together. 
