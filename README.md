@@ -16,7 +16,7 @@ This is a simple chatting platform built using the socket library in python.
 - You can open a new terminal and run `python3 multiple-client.py` anytime in order to connect a new client to the server.
 ## What is yet to be done:
 - We're yet to implement multiple servers to handle requests and hence, load balancing.
-- We've planned out the end-to-end encryption for messages but it is yet to be programmed.
+- We've planned out the end-to-end encryption for messages using RSA but it is yet to be programmed.
 - Still left to build the notion of groups and the process to send images.
 - The code is not well modularised and documented.
 ## Contributors:
