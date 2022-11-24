@@ -1,21 +1,26 @@
 import socket
 import hashlib
 import threading
+import rsa
 
 def recv_msg(user):
     while True:
-        data = ClientMultiSocket.recv(2048).decode('utf-8')
-        if data == '--':
+        data = ClientMultiSocket.recv(2048)
+        if data == str.encode('--'):
             return
-        else:        
-            print("-> " + user + ": " + data)
+        else:
+            decrypted = rsa.decrypt(data, privateKey).decode('ascii')        
+            print("-> " + user + ": " + decrypted)
 
-def send_msg():
+def send_msg(public):
     while True:
         data = input()
-        ClientMultiSocket.sendall(str.encode(data))
         if data == "--":
+            ClientMultiSocket.sendall(str.encode(data))
             return
+        else:
+            encrypted = rsa.encrypt(data.encode('ascii'), public)
+            ClientMultiSocket.sendall(encrypted)
 
 ClientMultiSocket = socket.socket()
 host = '127.0.0.1'
@@ -31,6 +36,7 @@ print("1: Signup")
 print("2: Login")
 
 ch = 0
+(publicKey, privateKey) = (0, 0)
 
 while True:
     ch = str(input("Enter your choice: "))
@@ -54,6 +60,13 @@ if ch == '2':
         if msg == "Login failed!":
             continue
         else:
+            with open(ID+".txt", 'r') as f:
+                lines = f.read().split("\n")
+                pub = lines[0].split("-")
+                pri = lines[1].split("-")
+                publicKey = rsa.key.PublicKey(int(pub[0]), int(pub[1]))
+                privateKey = rsa.key.PrivateKey(int(pri[0]), int(pri[1]), int(pri[2]), int(pri[3]), int(pri[4]))
+                f.close()
             break
 
 elif ch == '1':
@@ -69,12 +82,26 @@ elif ch == '1':
         if msg == "This ID already exists!":
             continue
         else:
+            (publicKey, privateKey) = rsa.newkeys(1024)
+            with open(ID+".txt", 'w') as f:
+                f.write(str(publicKey.n) + "-" + str(publicKey.e) + "\n")
+                f.write(str(privateKey.n) + "-" + str(privateKey.e) + "-" + str(privateKey.d) + "-" + str(privateKey.p) + "-" + str(privateKey.q))
+                f.close()
+            ClientMultiSocket.send(str.encode(str(publicKey.n)+"-"+str(publicKey.e)))
             break
 
 while True:
     end = 0
+    public_string = ""
     while True:
-        print(ClientMultiSocket.recv(2048).decode('utf-8')) 
+        print(ClientMultiSocket.recv(2048).decode('utf-8'))
+        while True:
+            sender = ClientMultiSocket.recv(2048).decode('utf-8')
+            if sender == ":)":
+                break
+            message = rsa.decrypt(ClientMultiSocket.recv(2048), privateKey).decode('ascii')
+            print(sender+message)
+
         Input = input('Who do you want to talk to?: ')
         ClientMultiSocket.send(str.encode(Input))
         if Input == "no one":
@@ -83,15 +110,24 @@ while True:
         msg = ClientMultiSocket.recv(2048).decode('utf-8')
         print(msg)
         if msg == "********************":
+            public_string = ClientMultiSocket.recv(2048).decode('utf-8')
             print(ClientMultiSocket.recv(2048).decode('utf-8'))
+            while True:
+                sender = ClientMultiSocket.recv(2048).decode('utf-8')
+                if sender == ":)":
+                    break
+                message = rsa.decrypt(ClientMultiSocket.recv(2048), privateKey).decode('ascii')
+                print(sender+message)
             break
         else:
             continue
     if end == 1:
         break
+    n_e = public_string.split("-")
+    public = rsa.key.PublicKey(int(n_e[0]), int(n_e[1]))
     t = threading.Thread(target=recv_msg, args=[Input])
     t.start()
-    send_msg()
+    send_msg(public)
     t.join()
         
 ClientMultiSocket.close()
