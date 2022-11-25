@@ -3,24 +3,41 @@ import hashlib
 import threading
 import rsa
 
+ID = ""
+
 def recv_msg(user):
-    while True:
-        data = ClientMultiSocket.recv(2048)
-        if data == str.encode('--'):
-            return
-        else:
-            decrypted = rsa.decrypt(data, privateKey).decode('ascii')        
-            print("-> " + user + ": " + decrypted)
+    if user.startswith('<'):
+        while True:
+            data = ClientMultiSocket.recv(2048).decode('utf-8').split('|')
+            if data[0] == '--':
+                return
+            else:
+                print("-> " + user + "-" + data[0] + ": " + data[1])
+    else:
+        while True:
+            data = ClientMultiSocket.recv(2048)
+            if data == str.encode('--'):
+                return
+            else:
+                decrypted = rsa.decrypt(data, privateKey).decode('ascii')        
+                print("-> " + user + ": " + decrypted)
 
 def send_msg(public):
-    while True:
-        data = input()
-        if data == "--":
+    if public == rsa.key.PublicKey(0, 0):
+        while True:
+            data = input()
             ClientMultiSocket.sendall(str.encode(data))
-            return
-        else:
-            encrypted = rsa.encrypt(data.encode('ascii'), public)
-            ClientMultiSocket.sendall(encrypted)
+            if data == "--":
+                return
+    else:
+        while True:
+            data = input()
+            if data == "--":
+                ClientMultiSocket.sendall(str.encode(data))
+                return
+            else:
+                encrypted = rsa.encrypt(data.encode('ascii'), public)
+                ClientMultiSocket.sendall(encrypted)
 
 ClientMultiSocket = socket.socket()
 host = '127.0.0.1'
@@ -90,42 +107,68 @@ elif ch == '1':
             ClientMultiSocket.send(str.encode(str(publicKey.n)+"-"+str(publicKey.e)))
             break
 
+server_port = int(ClientMultiSocket.recv(2048).decode('utf-8'))
+ClientMultiSocket.close()
+
+ClientMultiSocket = socket.socket()
+print('Waiting for connection response')
+try:
+    ClientMultiSocket.connect((host, server_port))
+except socket.error as e:
+    print(str(e))
+
+ClientMultiSocket.send(str.encode(ID))
+
 while True:
     end = 0
     public_string = ""
+    user = ""
     while True:
         print(ClientMultiSocket.recv(2048).decode('utf-8'))
         while True:
             sender = ClientMultiSocket.recv(2048).decode('utf-8')
             if sender == ":)":
                 break
-            message = rsa.decrypt(ClientMultiSocket.recv(2048), privateKey).decode('ascii')
+            if sender.split(' ')[1].startswith('<'):
+                message = ClientMultiSocket.recv(2048).decode('utf-8')
+            else:
+                message = rsa.decrypt(ClientMultiSocket.recv(2048), privateKey).decode('ascii')
             print(sender+message)
 
         Input = input('Who do you want to talk to?: ')
+        user = Input
         ClientMultiSocket.send(str.encode(Input))
+        if Input.startswith('#CG'):
+            user = Input.split('-')[1]
         if Input == "no one":
             end = 1
             break
         msg = ClientMultiSocket.recv(2048).decode('utf-8')
         print(msg)
         if msg == "********************":
-            public_string = ClientMultiSocket.recv(2048).decode('utf-8')
+            if not (Input.startswith('#CG') or Input.startswith('<')):
+                public_string = ClientMultiSocket.recv(2048).decode('utf-8')
             print(ClientMultiSocket.recv(2048).decode('utf-8'))
             while True:
                 sender = ClientMultiSocket.recv(2048).decode('utf-8')
                 if sender == ":)":
                     break
-                message = rsa.decrypt(ClientMultiSocket.recv(2048), privateKey).decode('ascii')
+                if Input.startswith('<'):
+                    message = ClientMultiSocket.recv(2048).decode('utf-8')
+                else:
+                    message = rsa.decrypt(ClientMultiSocket.recv(2048), privateKey).decode('ascii')
                 print(sender+message)
             break
         else:
             continue
     if end == 1:
         break
-    n_e = public_string.split("-")
-    public = rsa.key.PublicKey(int(n_e[0]), int(n_e[1]))
-    t = threading.Thread(target=recv_msg, args=[Input])
+    if public_string == "":
+        public = rsa.key.PublicKey(0, 0)
+    else:
+        n_e = public_string.split("-")
+        public = rsa.key.PublicKey(int(n_e[0]), int(n_e[1]))
+    t = threading.Thread(target=recv_msg, args=[user])
     t.start()
     send_msg(public)
     t.join()
