@@ -131,6 +131,8 @@ while True:
                 break
             if sender.split(' ')[1].startswith('<'):
                 message = ClientMultiSocket.recv(2048).decode('utf-8')
+            elif sender.split(' ')[1].startswith('#'):
+                message = ClientMultiSocket.recv(2048).decode('utf-8')
             else:
                 message = rsa.decrypt(ClientMultiSocket.recv(2048), privateKey).decode('ascii')
             print(sender+message)
@@ -156,7 +158,8 @@ while True:
                 if Input.startswith('<'):
                     message = ClientMultiSocket.recv(2048).decode('utf-8')
                 else:
-                    message = rsa.decrypt(ClientMultiSocket.recv(2048), privateKey).decode('ascii')
+                    message = ClientMultiSocket.recv(2048)
+                    message = rsa.decrypt(message, privateKey).decode('ascii')
                 print(sender+message)
             break
         else:

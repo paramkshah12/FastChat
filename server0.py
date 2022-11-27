@@ -129,9 +129,10 @@ def multi_threaded_client(connection):
                     (name, members))
                 join_msg = ID+" added you to "+items[1]+" with members: "+members.replace('-', ', ')
                 for member in members.split('-'):
-                    cur.execute('''INSERT INTO MSGS (RECIPIENT_ID, MSG, SENDER_ID, DURATION) \
-                        VALUES (%s, %s, '#A', %s)''',
-                        (member, join_msg, duration))
+                    if member != ID:
+                        cur.execute('''INSERT INTO MSGS (RECIPIENT_ID, MSG, SENDER_ID, DURATION) \
+                            VALUES (%s, %s, '#A', %s)''',
+                            (member, join_msg, duration))
                 conn.commit()
                 to_user = name
                 connection.send(str.encode("********************"))
